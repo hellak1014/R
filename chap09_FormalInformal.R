@@ -11,7 +11,6 @@
 
 
 """
-
 SQL>
 create table test_table(
   id      varchar2(50) primary key,
@@ -48,16 +47,15 @@ library(RJDBC) # rJava에 의존적이다(rJava 먼저 로딩).
 
 ###  Oracle 11g Ex.
 # driver
-drv <- JDBC("oracle.jdbc.driver.OracleDriver",
-     "C:/oraclexe/app/oracle/product/11.2.0/server/jdbc/lib/ojdbc6.jar")
-#JDBC()함수로 위치 정보를 알려준 뒤, 실질적인 정보가 담긴 압축파일과 jar파일을 ㅇ알려주는것. 
+drv <- JDBC("oracle.jdbc.driver.OracleDriver", 
+            "C:/oraclexe/app/oracle/product/11.2.0/server/jdbc/lib/ojdbc6.jar")
 
-# db 연동(driver, url, id, pwd) DBI패키지에서 제공하는 함수. 변수로는 위에서 정보를 담은 주소위치와 두번째 담긴 매개변수로는 오라클 주소, 세번째부터는 아이디 비번을 입력. 
+# db 연동(driver, url, id, pwd)
 conn <- dbConnect(drv,"jdbc:oracle:thin:@//localhost:1521/xe","scott","tiger")
 
 # (1) 모든 레코드 검색
 query <- "select * from test_table"
-dbGetQuery(conn, query) #DB쿼리 전달
+dbGetQuery(conn, query)
 
 # (2) 조건 검색 - 나이가 30세 이상인 레코드 조회
 query <- "select * from test_table where age >= 30"
@@ -72,7 +70,7 @@ dbGetQuery(conn, query)
 
 # (4) 레코드 삽입
 query <- "insert into test_table values('kang', '1234','강감찬', 35)"
-dbSendUpdate(conn, query) #dbSendupdate 함수 사용. RJDBC에서 제공하는 함수.
+dbSendUpdate(conn, query)
 
 
 # (5) 레코드 수정 : 데이터 '강감찬'의 나이를 40으로 수정.
@@ -98,36 +96,52 @@ dbDisconnect(conn) #DBI
 # - 텍스트 마이닝(Text Mining): 문자로 된 데이터에서 가치 있는 정보를 얻어 내는 분석 기법.
 
 ## 2.1 토픽 분석
-#    - 텍스트 데이터를 대상을 단어를 추출하고, 이를 단어 사전과 비교하여 단어의 출현 빈도수를 분석하는 텍스트 마이닝 분석 과정을 의미.
+#    - 텍스트 데이터를 대상으로 단어를 추출하고, 이를 단어 사전과 비교하여 단어의 출현 빈도수를 분석하는 텍스트 마이닝 분석 과정을 의미.
 #    - 또한 단어구름(word cloud) 패키지를 적용하여 분석 결과를 시각화하는 과정도 포함.
 
 # (1) 패키지 설치 및 준비
-#install.packages("KoNLP")
-# - package ‘KoNLP’ is not available...
-install.packages('https://cran.rstudio.com/bin/windows/contrib/3.6/sessioninfo_1.1.1.zip', repos = NULL)
-install.packages("https://cran.rstudio.com/bin/windows/contrib/3.4/KoNLP_0.80.1.zip",repos = NULL)
-install.packages("https://cran.rstudio.com/bin/windows/contrib/3.6/devtools_2.4.1.zip",repos = NULL)
-# Sejong 설치: KoNLP와 의존성 있는 현재 버전의 한글 사전 Sejong 패키지 설치.
-install.packages("Sejong")
-install.packages(c("hash","tau","RSQLite","rJava"))
+getwd()
+setwd("C:/workspaces/Rwork/data")
 
-library(Sejong); library(hash); library(tau); library(RSQLite)
-
+install.packages("rJava")
 Sys.setenv(JAVA_HOME='C:/Program Files/Java/jdk-11.0.16.1')
-install.packages("fs")
-library(rJava); library(devtools)
+library(rJava)
+
+# 아래 패키지를 설치 후
+install.packages("multilinguer")
+library(multilinguer)
+
+# 의존성을 설치 한다. 
+install.packages(c('stringr', 'hash', 'tau', 'Sejong', 'RSQLite', 'devtools'), type = "binary")
+
+library(stringr); library(hash); library(tau); 
+library(Sejong); library(RSQLite); library(devtools); 
+
+# Git hub로 설치 한다. 
+install.packages("remotes")
+library(remotes)
+
+remotes::install_github('haven-jeon/KoNLP', upgrade = "never", INSTALL_opts=c("--no-multiarch"), force=TRUE)
+
+# https://jar-download.com/artifacts/org.scala-lang/scala-library/2.11.8/source-code : scala-library-2.11.8.jar 다운로드
+# "C:/Program Files/R/R-설치버전/library/KoNLP/java/ 폴더에 복사(scala-library-2.11.8.jar)"
 
 library(KoNLP)
+
+# KoNLP 테스트 예제
+sentence <- '아버지가 방에 스르륵 들어가신다.'
+extractNoun(sentence) # 명사를 검출하겠다.
 
 install.packages(c("wordcloud","tm"))
 library(wordcloud); library(tm)
 
 # (2) 텍스트 자료 가져오기
-facebook <- file("C:/workspaces/Rwork/src/data/facebook_bigdata.txt",encoding = "UTF-8")
+facebook <- file("facebook_bigdata.txt", encoding = "UTF-8")
 facebook
 facebook_data <- readLines(facebook) # 줄 단위 데이터 생성
 head(facebook_data) # 앞부분 6줄 보기 - 줄 단위 데이터 생성
 str(facebook_data) # chr [1:76]
+close(facebook)
 
 # (3) 세종 사전에 신규 단어 추가
 userDic <- data.frame(term=c("R 프로그래밍","페이스북","소셜네트워크","얼죽아"), tag='ncn')
@@ -149,18 +163,22 @@ exNouns <- function(x){
 }
 
 # (2) exNouns 함수 이용 단어 추출
-facebook_nouns <- sapply(facebook_data, exNouns) # 명사 단어 추출.
+facebook_nouns <- sapply(facebook_data, exNouns) # 명사 단어 추출. 
+#apply 함수 : 3개의 데이터 입력 받음. (매트릭스, 중심으로 할 행/열, 함수) 
+# 입력으로 전달된 행렬을 행/열 기준으로 함수를 수행. 
+# s가 붙기도 하고, l이 붙기도 했다. apply는 매트릭스 전용, s나 l은 벡터. s는 벡터로 반환, l은 list로 반환. 
 facebook_nouns[1] # 단어가 추출된 첫 줄 보기
 
 
 # (5) 추출된 단어 대상 전처리
 #  단계1: 추출된 단어 이용 말뭉치(Corpus) 생성
-myCorpus <- Corpus(VectorSource(facebook_nouns))
+myCorpus <- Corpus(VectorSource(facebook_nouns)) # 텍스트 마이닝 제공 corpus. 텍스트 데이터의 자료형으로 
+# 자기가 사용하는 고유 자료형을 corpus로 한다. 
 myCorpus
 
 
 #  단계2: 데이터 전처리
-myCorpusPrepro <- tm_map(myCorpus, removePunctuation) # 문장부호 제거
+myCorpusPrepro <- tm_map(myCorpus, removePunctuation) # 문장부호 제거. corpus자료를 매개변수로 전달 받음. 
 myCorpusPrepro <- tm_map(myCorpusPrepro,removeNumbers) # 수치 제거
 myCorpusPrepro <- tm_map(myCorpusPrepro,tolower) # 소문자 변경
 myCorpusPrepro <- tm_map(myCorpusPrepro,removeWords, stopwords('english')) # 불용어 제거(for, very, and, of, are)
@@ -177,8 +195,8 @@ myCorpusPrepro_term <- TermDocumentMatrix(myCorpusPrepro, control=list(wordLengt
 myCorpusPrepro_term # Corpus 객체 정보
 
 # matrix 자료구조를 data.frame 자료 구조로 변경
-myTerm_df <- as.data.frame(as.matrix(myCorpusPrepro_term))
-dim(myTerm_df) # [1] 696  76
+myTerm_df <- as.data.frame(as.matrix(myCorpusPrepro_term)) #매트릭스 -> 데이터프레임
+dim(myTerm_df) # [1] 696  76 행열갯수 세기. 
 
 
 # (7) 단어 출현 빈도수 구하기 - 빈도수가 높은 순서대로 내림차순 정렬.
@@ -211,6 +229,7 @@ wordResult <- sort(rowSums(myTerm_df), decreasing=T) # 빈도수로 내림차순
 wordResult[1:20]
 
 # (9) 단어 구름(wordcloud) 시각화 - 디자인 적용 전
+x11() # 별도의 창을 띄우는 함수
 myName <- names(wordResult) # 단어 이름 추출
 wordcloud(myName, wordResult) # 단어 구름 시각화
 
@@ -224,7 +243,6 @@ pal <- brewer.pal(12, "Paired") # 12가지 색상 pal
 windowsFonts(malgun=windowsFont("맑은 고딕"))
 
 # (3) 단어 구름 시각화
-x11() # 별도의 창을 띄우는 함수
 wordcloud(word.df$word, word.df$freq, scale = c(5,1),
           min.freq = 3, random.order = F, rot.per = .1,
           colors = pal, family="malgun")
@@ -233,18 +251,15 @@ wordcloud(word.df$word, word.df$freq, scale = c(5,1),
 
 # 예시2) 텍스트 파일 가져오기와 단어 추출하기.
 # 데이터 불러오기
-txt <- readLines("C:/workspaces/Rwork/src/data/hiphop.txt")
+txt <- readLines("hiphop.txt") # "UTF-8"로 변경.
 head(txt)
 
-install.packages("stringr")
-library(stringr)
-
 # 특수문자 제거
-txt <- str_replace_all(txt, "\\W", " ") # \W : 대문자 주의.
+txt <- str_replace_all(txt, "\\W", " ") # \W : 대문자 주의. str_replace_all 함수 : stringr에서 제공. \W -> 특수문자 제거. \w => 특수문자만 검색. 대소문자 차이 있다. 
 head(txt)
 
 # 가사에서 명사 추출
-nouns <- extractNoun(txt)
+nouns <- extractNoun(txt) #key value 형식의 list. key값은 따로 없고 열에 따른 증가로 둠. 
 nouns
 
 # 추출한 명사 list를 문자열 벡터로 변환, 단어별 빈도표 생성
@@ -260,14 +275,13 @@ names(df_word) <- c("word", "freq")
 tail(df_word)
 
 # 두 글자 이상 단어 추출
-
 install.packages("dplyr")
-library(dplyr)
+library(dplyr)  # 필터. %>% : 파이프(pipe) 연산자 -> 단축키(ctl+shift+m) %>%.
 
 df_word <- filter(df_word, nchar(word) >= 2)
 
 top_20 <- df_word %>%
-  arrange(desc(freq)) %>%
+  arrange(desc(freq)) %>% # 내림차순 빈도수 정렬
   head(20)
 
 top_20
@@ -275,8 +289,7 @@ top_20
 # 시각화
 pal <- brewer.pal(8, "Dark2") # Dark2 색상 목록에서 8개  색상 추출.
 
-set.seed(1234)
-x11()
+# set.seed(1234)
 wordcloud(words = df_word$word,
           freq = df_word$freq,
           min.freq = 2,
@@ -288,31 +301,34 @@ wordcloud(words = df_word$word,
 
 
 ## 2.2 연관어 분석
-#   : 연관규칙(Association Rule)을 적용하여 특정 단어와 연관성이 있는 단어들을 선별하여 네트워크 형태로 시각화하는 과정.
+#   : 연관규칙(Association Rule)을 적용하여 특정 단어와 연관성이 있는 단어들을 선별하여 네트워크 형태로 시각화하는 과정. 장바구니 분석이라고도 하며 마케팅에서 많이 사용한다. 
 
 # 한글 처리를 위한 패키지 설치
 # - 토픽 분석 참조.
 
+# 텍스트 파일 가져오기와 단어 추출하기 
 # 1. 텍스트 파일 가져오기
-marketing <- file("C:/workspaces/Rwork/src/data/marketing.txt", encoding = "UTF-8")
-marketing
+marketing <- file("marketing.txt", encoding = "UTF-8")
 marketing2 <- readLines(marketing) # 줄 단위 데이터 생성
 marketing2
+close(marketing)
 
 # 2. 줄 단위 단어 추출
-lword <- Map(extractNoun, marketing2)
+lword <- Map(extractNoun, marketing2) # extractNoun 함수 호출하면서 marketing2 데이터 넣어주기. 
 head(lword)
 length(lword) # 472
 View(lword)
 
 
-'''
+#'''
 # - 참조(unique())
 
 c1 <- rep(1:10, each=2)
 c1 # 1  1  2  2  3  3  4  4  5  5  6  6  7  7  8  8  9  9 10 10
+
 c2 <- rep(c(1, 3, 5, 7, 9), each=4)
 c2 # 1 1 1 1 3 3 3 3 5 5 5 5 7 7 7 7 9 9 9 9
+
 c3 <- c(1,1,1,1,3,3,3,3,5,5,6,6,7,7,8,8,9,10,11,12)
 c3 # 1  1  1  1  3  3  3  3  5  5  6  6  7  7  8  8  9 10 11 12
 
@@ -320,26 +336,27 @@ c123_df <- data.frame(cbind(c1,c2,c3))
 c123_df
 str(c123_df) # "data.frame":	20 obs. of  3 variables:
 
-c12_unique <- unique(c123_df[,c("c1","c2")])
+c12_unique <- unique(c123_df[,c("c1","c2")]) #unique()함수. 원하는 값만 출력. 여기선 c1, c2. 
 c12_unique
 
-c123_unique <- unique(c123_df[,c("c1","c2","c3")])
+c123_unique <- unique(c123_df[,c("c1","c2","c3")]) #중복된 값을 삭제하고 보여준다. 
 c123_unique
 
-c123_unique_Last <- unique(c123_df[,c("c1","c2","c3")],fromLast=T)
+c123_unique_Last <- unique(c123_df[,c("c1","c2","c3")],fromLast=T) # fromLast = TRUE) 옵션을 적용하면 중복된 관측치들 중에서 남길 관측치(행, row)를 선택할 때 가장 밑에 있는 관측치(from Last observation)를 기준으로 선택
 c123_unique_Last
-'''
+#'''
 
 lword <- unique(lword) # 공백 block 제거
 length(lword) # 353
 
-lword <- sapply(lword, unique)
-length(lword)
-View(lword)
+lword <- sapply(lword, unique) # sapply : 벡터, 리스트, 표현식, 데이터 프레임 등에 함수를 적용하고 그 결과를 벡터 또는 행렬로 반환한다.
+length(lword) # 353
 
 str(lword) # List of 353
 
-# 단어 필터링 함수 정의 - 길이가 2개 이상 4개 이하 사이의 문자 길이로 구성된 단어만 필터링.
+# 연관어 분석을 위한 전처리 
+
+# 1) 단어 필터링 함수 정의 - 길이가 2개 이상 4개 이하 사이의 문자 길이로 구성된 단어만 필터링.
 filter1 <- function(x){
   nchar(x) >= 2 && nchar(x) <= 4 && is.hangul(x)
 }
@@ -366,14 +383,14 @@ wordtran <- as(lword, "transactions")
 wordtran
 # transactions in sparse format with
 # 353 transactions (rows) and
-# 2423 items (columns)
+# 2424 items (columns)
 
-# 3) 교차표 작성: crossTable() -> 교차테이블 함수를 이용.
-wordtable <- crossTable(wordtran)
+# 3) 교차표 작성: crossTable() -> 교차테이블 함수를 이용. 변수간의 관계를 보는 CrossTable과 결과가 같게 나오지 않는다. 
+wordtable <- crossTable(wordtran) # 명사형의 단어를 나열. 
 wordtable
 
 # 4) 단어 간 연관 규칙 산출
-tranrules <- apriori(wordtran,parameter=list(support=0.25, conf=0.05))
+tranrules <- apriori(wordtran,parameter=list(support=0.25, conf=0.05))  # support : 지지도, conf : 신뢰도
 # writing ... [59 rule(s)] done [0.00s].
 
 # 5) 연관 규칙 생성 결과 보기
@@ -386,12 +403,12 @@ head(rules, 20)
 class(rules) # "character"
 
 # 2) 문자열로 묶인 연관 단어를 행렬 구조 변경.
-rules <- sapply(rules, strsplit, " ", USE.NAMES = F)
+rules <- sapply(rules, strsplit, " ", USE.NAMES = F) # rules라는 데이터를 strsplit함수를 사용해서 공백의 결과로 뽑아내기. 
 rules
 class(rules) # "list"
 
 # 3) 행 단위로 묶어서 matrix로 반환
-rulemat <- do.call("rbind", rules)
+rulemat <- do.call("rbind", rules) # do.call 함수. 데이터끼리 합치는 것. 
 rulemat
 class(rulemat) # "matrix"
 
@@ -400,16 +417,15 @@ install.packages("igraph")
 library(igraph)
 
 # edgelist 보기 - 연관 단어를 정점(Vertex) 형태의 목록 제공
-relueg <- graph.edgelist(rulemat[c(19:100),],directed = F) # [c(1:18)] "{}" 제외
-relueg
+ruleg <- graph.edgelist(rulemat[c(12:59),], directed = F) #[1,]~[11,] "{}" 제외
+ruleg
 
 # edgelist 시각화
 x11()
-plot.igraph(relueg,vertex.label=V(relueg)$name,
+plot.igraph(ruleg,vertex.label=V(ruleg)$name,
             vertex.label.cex=1.2, vertex.label.color='black',
             vertex.size=20, vertex.color='green',
             vertex.frame.color='blue')
-
 
 # 3. 실시간 뉴스 수집과 분석
 
@@ -446,8 +462,10 @@ web
 
 # 실습: HTML 파싱하기
 html <- htmlTreeParse(web, useInternalNodes = T, trim = T, encoding = "utf-8")
-rootNode <- xmlRoot(html)
 html
+
+rootNode <- xmlRoot(html)
+rootNode
 
 # 실습: 태그 자료 수집하기
 news <- xpathSApply(rootNode, "//a[@class = 'link_txt']", xmlValue)
@@ -456,26 +474,25 @@ news
 
 # 실습: 자료 전처리하기
 # 단계 1: 자료 전처리 - 수집한 문서를 대상으로 불용어 제거
-news_pre <- gsub("[\r\n\t]", ' ', news)
-news_pre <- gsub('[[:punct:]]', ' ', news_pre)
-news_pre <- gsub('[[:cntrl:]]', ' ', news_pre)
-# news_pre <- gsub('\\d+', ' ', news_pre)   # corona19(covid19) 때문에 숫자 제거 생략
-news_pre <- gsub('[a-z]+', ' ', news_pre)
+news_pre <- gsub("[\r\n\t]", ' ', news) # 줄바꿈, 탭
+news_pre <- gsub('[[:punct:]]', ' ', news_pre) # 문장 부호
+news_pre <- gsub('[[:cntrl:]]', ' ', news_pre) # 특수 문자.
+news_pre <- gsub('\\d+', ' ', news_pre)   # corona19(covid19) 때문에 숫자 제거 생략
+news_pre <- gsub('[a-z]+', ' ', news_pre) # 한글 키워드만 검색하기 위해서 영문 삭제.
 news_pre <- gsub('[A-Z]+', ' ', news_pre)
-news_pre <- gsub('\\s+', ' ', news_pre)
+news_pre <- gsub('\\s+', ' ', news_pre) # 여백이 두개 이상이 있을때 하나의 여백으로 변환.
 
 news_pre
 
 # 단계 2: 기사와 관계 없는 'TODAY', '검색어 순위' 등의 내용은 제거
-news_data <- news_pre[1:59]
+news_data <- news_pre[1:32] # 검색수 만큼 변경 
 news_data
 
 
 # 실습: 수집한 자료를 파일로 저장하고 읽기
-setwd("C:/workspaces/Rwork/src/output")
-write.csv(news_data, "news_data.csv", quote = F)
+write.csv(news_data, "C:/workspaces/Rwork/output/news_data.csv", quote = F)
 
-news_data <- read.csv("news_data.csv", header = T, stringsAsFactors = F)
+news_data <- read.csv("C:/workspaces/Rwork/output/news_data.csv", header = T, stringsAsFactors = F)
 str(news_data)
 
 names(news_data) <- c("no", "news_text")
@@ -485,7 +502,8 @@ news_text <- news_data$news_text
 news_text
 
 # 실습: 세종 사전에 단어 추가
-user_dic <- data.frame(term = c("모더나", "삼바", "롤러블폰"), tag = 'ncn')
+library(KoNLP)
+user_dic <- data.frame(term = c("이태원역", "탄도미사일", "이태원"), tag = 'ncn')
 buildDictionary(ext_dic = 'sejong', user_dic = user_dic)
 
 # 실습: 단어 추출 사용자 함수 정의하기
@@ -499,16 +517,19 @@ news_nouns
 # 단계 3: 추출 결과 확인
 str(news_nouns)
 
-
 # 실습: 말뭉치 생성과 집계 행렬 만들기
 # 단계 1: 추출된 단어를 이용한 말뭉치(corpus) 생성
+library(tm)
 newsCorpus <- Corpus(VectorSource(news_nouns))
 newsCorpus
-
-inspect(newsCorpus[1:5])
+#<<SimpleCorpus>>
+#Metadata:  corpus specific: 1, document level (indexed): 0
+#Content:  documents: 32
+inspect(newsCorpus)
 
 # 단계 2: 단어 vs 문서 집계 행렬 만들기
-TDM <- TermDocumentMatrix(newsCorpus, control = list(wordLengths = c(4, 16)))
+# 한글 2~8 음절 단어 대상 단어/문서 집계 행렬 
+TDM <- TermDocumentMatrix(newsCorpus, control = list(wordLengths = c(4, 16))) # 2음절~8음절
 TDM
 
 # 단계 3: matrix 자료구조를 data.frame 자료구조로 변경
@@ -535,9 +556,9 @@ head(df)
 # 단계 3: 단어 구름 생성
 pal <- brewer.pal(12, "Paired")
 x11()
-wordcloud(df$word, df$freq, min.freq = 2,
+wordcloud(df$word, df$freq, min.freq = 1, 
           random.order = F, scale = c(4, 0.7),
-          rot.per = .1, colors = pal, family = "malgun")
+          rot.per = .1, colors = pal)
 
 
 
